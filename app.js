@@ -126,7 +126,25 @@ function parseLayout(value) {
   };
 }
 
-function parseSinyiMarkdown(markdown, requestedHouseNo) {
+function parseSinyiEmbeddedData(payload) {
+  const start = payload.indexOf("{");
+  const end = payload.lastIndexOf("}");
+  if (start < 0 || end <= start) return {};
+
+  const data = JSON.parse(payload.slice(start, end + 1));
+  const detailData = data?.props?.initialReduxState?.buyReducer?.detailData;
+  const schoolGroup = detailData?.utilitylifeInfo?.find(group => group.utilityType === "B");
+  const primaryPois = schoolGroup?.poiList?.find(group => group.utilitySubType === "B03")?.pois || [];
+  const secondaryPois = schoolGroup?.poiList?.find(group => group.utilitySubType === "B04")?.pois || [];
+
+  return {
+    primarySchool: text(primaryPois[0]?.title),
+    juniorSchool: text(secondaryPois.find(poi => /國中/.test(poi.title))?.title),
+    college: text(secondaryPois.find(poi => /高中|高職|大學|學院/.test(poi.title))?.title)
+  };
+}
+
+function parseSinyiMarkdown(markdown, requestedHouseNo, embeddedData = {}) {
   const lines = markdownLines(markdown);
   const title = text(markdown.match(/^Title:\s*(.*?)\s*-\s*信義房屋\s*$/m)?.[1]
     || markdown.match(/^#\s+(.+)$/m)?.[1]);
@@ -166,7 +184,9 @@ function parseSinyiMarkdown(markdown, requestedHouseNo) {
   const priceLine = headlinePrices[headlinePrices.length - 1]
     || lines.find(line => /^\d[\d,.]*萬$/.test(line))
     || "";
-  const primarySchool = lines.find(line => /^市立.*國小$/.test(line)) || "";
+  const primarySchool = embeddedData.primarySchool
+    || lines.find(line => /國小$/.test(line))
+    || "";
   const sourceText = featureSection.join("\n");
 
   return {
@@ -187,7 +207,8 @@ function parseSinyiMarkdown(markdown, requestedHouseNo) {
     parkingMode: hasParking ? parkingText : "無",
     parkingNO: "",
     priSchoolName: primarySchool,
-    junSchoolName: "",
+    junSchoolName: embeddedData.juniorSchool,
+    collegeName: embeddedData.college,
     buiYear: numberFromText(valueAfter(basic, "屋齡")),
     upFloor: floorMatch ? number(floorMatch[2]) : 0,
     rm: layout.rooms,
@@ -204,12 +225,31 @@ function parseSinyiMarkdown(markdown, requestedHouseNo) {
 async function fetchCase(url) {
   const houseNo = houseNoFromUrl(url);
   const source = `http://www.sinyi.com.tw/buy/house/${houseNo}`;
-  const response = await fetch(`https://r.jina.ai/${source}`, { headers: { Accept: "text/plain" } });
+  const readerUrl = `https://r.jina.ai/${source}`;
+  const [response, embeddedResponse] = await Promise.all([
+    fetch(readerUrl, { headers: { Accept: "text/plain" } }),
+    fetch(readerUrl, {
+      headers: {
+        Accept: "text/plain",
+        "X-Engine": "direct",
+        "X-Target-Selector": "#__NEXT_DATA__",
+        "X-Timeout": "20"
+      }
+    })
+  ]);
   if (!response.ok) {
     if (response.status === 429) throw new Error("公開資料服務使用量較高，請稍後一分鐘再試");
     throw new Error(`信義房屋資料讀取錯誤（${response.status}）`);
   }
-  return parseSinyiMarkdown(await response.text(), houseNo);
+  let embeddedData = {};
+  if (embeddedResponse.ok) {
+    try {
+      embeddedData = parseSinyiEmbeddedData(await embeddedResponse.text());
+    } catch {
+      // Continue with the visible page data if the embedded school data changes format.
+    }
+  }
+  return parseSinyiMarkdown(await response.text(), houseNo, embeddedData);
 }
 
 function text(value) { return value == null ? "" : String(value).trim(); }
@@ -335,12 +375,12 @@ function normalizeCase(raw) {
     managementFee: number(raw.mgExpense), managementFeeCode: mapManagementFeeCode(raw.mgCode),
     parkingNo: text(raw.parkingNO), parkingTypeCode: mapParkingTypeCode(raw.parkingMode, hasParking),
     parkingUseCode: hasParking ? "2" : "1",
-    primarySchool: text(raw.priSchoolName).replace(/^市立/, ""),
-    juniorSchool: text(raw.junSchoolName).replace(/^市立/, ""),
+    primarySchool: text(raw.priSchoolName),
+    juniorSchool: text(raw.junSchoolName),
     age: number(raw.buiYear), floorsAbove: Math.trunc(number(raw.upFloor)),
     rooms: Math.trunc(number(raw.rm)), livingRooms: Math.trunc(number(raw.livingRm)), bathrooms: Math.trunc(number(raw.bathRm)),
     price: number(raw.price), agentName: text(raw.empName), agentMobile: text(raw.empMobile), features,
-    college: allText.includes("中山醫") ? "中山醫" : "",
+    college: text(raw.collegeName) || (allText.includes("中山醫") ? "中山醫" : ""),
     shopping: /全聯|超商|便利商店/.test(allText) ? "全聯／超商" : "",
     park: allText.includes("綠園道") ? "綠園道" : "",
     hospital: allText.includes("中山醫") ? "中山醫附醫" : ""
