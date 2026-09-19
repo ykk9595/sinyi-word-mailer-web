@@ -136,11 +136,14 @@ function parseSinyiEmbeddedData(payload) {
   const schoolGroup = detailData?.utilitylifeInfo?.find(group => group.utilityType === "B");
   const primaryPois = schoolGroup?.poiList?.find(group => group.utilitySubType === "B03")?.pois || [];
   const secondaryPois = schoolGroup?.poiList?.find(group => group.utilitySubType === "B04")?.pois || [];
+  const leisureGroup = detailData?.utilitylifeInfo?.find(group => group.utilityType === "E");
+  const parkPois = leisureGroup?.poiList?.find(group => group.utilitySubType === "E01")?.pois || [];
 
   return {
     primarySchool: text(primaryPois[0]?.title),
     juniorSchool: text(secondaryPois.find(poi => /國中/.test(poi.title))?.title),
-    college: text(secondaryPois.find(poi => /高中|高職|大學|學院/.test(poi.title))?.title)
+    college: text(secondaryPois.find(poi => /高中|高職|大學|學院/.test(poi.title))?.title),
+    park: text(parkPois[0]?.title)
   };
 }
 
@@ -210,6 +213,7 @@ function parseSinyiMarkdown(markdown, requestedHouseNo, embeddedData = {}) {
     priSchoolName: primarySchool,
     junSchoolName: embeddedData.juniorSchool,
     collegeName: embeddedData.college,
+    parkName: embeddedData.park,
     buiYear: numberFromText(valueAfter(basic, "屋齡")),
     upFloor: floorMatch ? number(floorMatch[2]) : 0,
     rm: layout.rooms + addedLayout.rooms,
@@ -383,7 +387,7 @@ function normalizeCase(raw) {
     price: number(raw.price), agentName: text(raw.empName), agentMobile: text(raw.empMobile), features,
     college: text(raw.collegeName) || (allText.includes("中山醫") ? "中山醫" : ""),
     shopping: /全聯|超商|便利商店/.test(allText) ? "全聯／超商" : "",
-    park: allText.includes("綠園道") ? "綠園道" : "",
+    park: text(raw.parkName) || (allText.includes("綠園道") ? "綠園道" : ""),
     hospital: allText.includes("中山醫") ? "中山醫附醫" : ""
   };
 }
