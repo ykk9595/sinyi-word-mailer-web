@@ -130,7 +130,8 @@ function parseSinyiMarkdown(markdown, requestedHouseNo) {
   const lines = markdownLines(markdown);
   const title = text(markdown.match(/^Title:\s*(.*?)\s*-\s*信義房屋\s*$/m)?.[1]
     || markdown.match(/^#\s+(.+)$/m)?.[1]);
-  const listingLine = lines.find(line => line.includes(`(${requestedHouseNo})`)) || "";
+  const listingIndex = lines.findIndex(line => line.includes(`(${requestedHouseNo})`));
+  const listingLine = listingIndex >= 0 ? lines[listingIndex] : "";
   const listingNo = text(listingLine.match(/\(([0-9A-Z]+)\)/i)?.[1] || requestedHouseNo).toUpperCase();
   if (!title || !listingNo) throw new Error("信義房屋回應中找不到物件標題或編號");
 
@@ -159,7 +160,12 @@ function parseSinyiMarkdown(markdown, requestedHouseNo) {
   const agentName = expert.find(line => line !== "更多挑選" && !/^0\d{8,9}$/.test(line) && !/店$/.test(line)) || "";
   const agentMobile = expert.find(line => /^09\d{8}$/.test(line)) || "";
   const address = text(markdown.match(/地址\s+(.+?)\s+建坪單價/)?.[1]);
-  const priceLine = lines.find(line => /^\d[\d,.]*萬$/.test(line)) || "";
+  const headlinePrices = lines
+    .slice(Math.max(0, listingIndex + 1), Math.max(0, listingIndex + 12))
+    .filter(line => /^\d[\d,.]*萬$/.test(line));
+  const priceLine = headlinePrices[headlinePrices.length - 1]
+    || lines.find(line => /^\d[\d,.]*萬$/.test(line))
+    || "";
   const primarySchool = lines.find(line => /^市立.*國小$/.test(line)) || "";
   const sourceText = featureSection.join("\n");
 
