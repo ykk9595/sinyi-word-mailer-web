@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="description" content="貼上信義房屋網址，自動產生固定格式的 Word 物件明細表並寄送 Email。">
+  <title>信義房屋物件明細表產生器</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b8f5a'/%3E%3Cpath d='M15 29 32 15l17 14v20H15z' fill='white'/%3E%3Cpath d='M26 49V35h12v14' fill='%23dff7eb'/%3E%3Cpath d='M43 15v10' stroke='%23ffcc66' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=20260917-8">
+</head>
+<body>
+  <section id="access-gate" class="access-gate" aria-labelledby="password-title">
+    <div class="password-card">
+      <div class="brand-icon" aria-hidden="true">🏠</div>
+      <h1 id="password-title">信義房屋物件明細表產生器</h1>
+      <p>請輸入密碼後開啟網站。</p>
+      <form id="password-form">
+        <label for="site-password">密碼</label>
+        <input id="site-password" type="password" inputmode="numeric" autocomplete="current-password" required autofocus>
+        <button class="primary-button" type="submit">開啟網站</button>
+        <p id="password-error" class="password-error" role="alert" hidden>密碼錯誤，請重新輸入。</p>
+      </form>
+    </div>
+  </section>
+
+  <main id="site-content" class="shell" hidden>
+    <header class="page-header">
+      <div class="brand-icon" aria-hidden="true">🏠</div>
+      <div>
+        <h1>信義房屋物件明細表產生器</h1>
+        <p>貼上信義房屋網址，自動產生 Word 並寄到預設信箱。</p>
+      </div>
+    </header>
+
+    <section class="card" aria-labelledby="form-title">
+      <h2 id="form-title">建立物件明細表</h2>
+      <form id="generator-form">
+        <label for="case-url">信義房屋網址</label>
+        <input id="case-url" name="case-url" type="url" required autocomplete="url">
+
+        <label class="check-row">
+          <input id="send-email" type="checkbox" checked>
+          <span>產生後寄送 Word 附件</span>
+        </label>
+
+        <button id="submit-button" class="primary-button" type="submit">
+          <span class="button-icon" aria-hidden="true">📄</span>
+          <span>產生 Word 並寄出</span>
+        </button>
+      </form>
+
+      <div id="progress-panel" class="progress-panel" hidden aria-live="polite">
+        <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+        <p id="progress-text">準備中…</p>
+      </div>
+
+      <div id="result-panel" class="result-panel" hidden aria-live="polite">
+        <div id="result-icon" class="result-icon" aria-hidden="true">✓</div>
+        <div class="result-copy">
+          <h3 id="result-title">Word 已產生</h3>
+          <p id="result-message"></p>
+          <dl id="case-summary" class="case-summary"></dl>
+          <button id="download-again" type="button" class="secondary-button" hidden>再次下載 Word</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="notice">
+      <strong>第一次寄信需要啟用</strong>
+      <p>首次使用時，FormSubmit 會寄出確認信。點擊信中的啟用連結後，再按一次「產生 Word 並寄出」即可收到附件。</p>
+    </aside>
+
+  </main>
+
+  <iframe id="mail-submit-frame" name="mail-submit-frame" title="郵件附件寄送" hidden></iframe>
+
+  <script src="vendor/jszip.min.js"></script>
+  <script src="app.js?v=20260919-1"></script>
+</body>
+</html>
