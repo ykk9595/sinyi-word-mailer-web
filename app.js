@@ -159,6 +159,7 @@ function parseSinyiMarkdown(markdown, requestedHouseNo, embeddedData = {}) {
 
   const layoutText = valueAfter(basic, "格局");
   const layout = parseLayout(layoutText);
+  const addedLayout = parseLayout(valueAfter(basic, "加蓋格局"));
   const floorText = valueAfter(basic, "樓層");
   const floorMatch = floorText.match(/(\d+)樓\s*\/\s*(\d+)樓/);
   const parkingText = valueAfter(basic, "車位");
@@ -211,9 +212,9 @@ function parseSinyiMarkdown(markdown, requestedHouseNo, embeddedData = {}) {
     collegeName: embeddedData.college,
     buiYear: numberFromText(valueAfter(basic, "屋齡")),
     upFloor: floorMatch ? number(floorMatch[2]) : 0,
-    rm: layout.rooms,
-    livingRm: layout.livingRooms,
-    bathRm: layout.bathrooms,
+    rm: layout.rooms + addedLayout.rooms,
+    livingRm: layout.livingRooms + addedLayout.livingRooms,
+    bathRm: layout.bathrooms + addedLayout.bathrooms,
     price: numberFromText(priceLine),
     empName: agentName,
     empMobile: agentMobile,
